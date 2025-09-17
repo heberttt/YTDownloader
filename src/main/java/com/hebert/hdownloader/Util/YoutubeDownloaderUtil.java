@@ -41,8 +41,9 @@ public class YoutubeDownloaderUtil {
                 minioService.uploadMusic(currentDirectory + "/tmp/music/" + fileName, fileName);
             } catch (Exception e) {
                 logger.error("minio upload failed: {}", e.getMessage());
-
                 return;
+            }finally{
+                downloadedFile.delete();
             }
         }
     }
