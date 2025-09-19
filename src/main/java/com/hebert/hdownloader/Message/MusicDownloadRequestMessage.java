@@ -4,5 +4,5 @@ import lombok.Data;
 
 @Data
 public class MusicDownloadRequestMessage {
-    private String youtube_url;
+    private String youtubeUrl;
 }

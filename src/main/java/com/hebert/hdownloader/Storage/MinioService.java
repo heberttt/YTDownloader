@@ -10,6 +10,8 @@ import org.springframework.stereotype.Component;
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
+import io.minio.StatObjectArgs;
+import io.minio.StatObjectResponse;
 import io.minio.UploadObjectArgs;
 import io.minio.errors.MinioException;
 
@@ -30,6 +32,27 @@ public class MinioService {
                 .credentials(accessKey, secretKey)
                 .build();
         this.bucket = bucket;
+    }
+
+    /**
+     * 
+     * @param filePath ex: "file/song.mp3"
+     * 
+     */
+    public boolean fileExists(String filePath){
+        try{
+            StatObjectResponse stat = minioClient.statObject(
+                StatObjectArgs.builder()
+                .bucket(bucket)
+                .object(filePath)
+                .build()
+            );
+
+            return stat != null;
+
+        }catch(Exception e){
+            return false;
+        }
     }
 
     public void uploadMusic(String filePath, String fileName) throws MinioException, InvalidKeyException, NoSuchAlgorithmException, IllegalArgumentException, IOException {

@@ -11,24 +11,30 @@ import org.springframework.stereotype.Component;
 import com.hebert.hdownloader.Storage.MinioService;
 
 @Component
-public class YoutubeDownloaderUtil {
+public class YoutubeDownloaderService {
 
     private MinioService minioService;
 
-    private static final Logger logger = LoggerFactory.getLogger(YoutubeDownloaderUtil.class);
+    private static final Logger logger = LoggerFactory.getLogger(YoutubeDownloaderService.class);
 
-    public YoutubeDownloaderUtil(MinioService minioService) {
+    public YoutubeDownloaderService(MinioService minioService) {
         this.minioService = minioService;
     }
 
     public void downloadMusic(String youtubeLink) throws IOException, InterruptedException {
+
         String link = YoutubeFormatUtil.linkStandardization(youtubeLink);
 
         String musicCode = YoutubeFormatUtil.linkCodeGetter(link);
 
+        if(minioService.fileExists("file/" + musicCode + ".mp3")){
+            System.out.println("Music is already installed");
+            return;
+        }
+
         String currentDirectory = System.getProperty("user.dir");
 
-        createDownloadProcess(musicCode, link, currentDirectory);
+        startDownloadProcess(musicCode, link, currentDirectory);
 
         File downloadedFile = new File(currentDirectory + "/tmp/music/" + musicCode + ".mp3");
 
@@ -48,7 +54,7 @@ public class YoutubeDownloaderUtil {
         }
     }
 
-    private void createDownloadProcess(String musicCode, String link, String currentDirectory)
+    private void startDownloadProcess(String musicCode, String link, String currentDirectory)
             throws IOException, InterruptedException {
         List<String> command = List.of("yt-dlp", "-x", "--audio-format", "mp3", "-o", musicCode, link);
 

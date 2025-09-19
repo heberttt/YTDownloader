@@ -3,7 +3,7 @@ package com.hebert.hdownloader.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.hebert.hdownloader.Util.YoutubeDownloaderUtil;
+import com.hebert.hdownloader.Util.YoutubeDownloaderService;
 
 import java.io.IOException;
 
@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 public class DownloadController {
     
     @Autowired
-    YoutubeDownloaderUtil youtubeDownloaderUtil;
+    YoutubeDownloaderService youtubeDownloaderUtil;
 
     @PostMapping("/download")
     public String download(@RequestBody String url) throws IOException, InterruptedException {
