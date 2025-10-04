@@ -6,8 +6,13 @@ import java.util.List;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+import org.springframework.web.client.RestTemplate;
 
+import com.hebert.hdownloader.Consumer.YoutubeDataApiConsumer;
+import com.hebert.hdownloader.Enum.ThumbnailQuality;
+import com.hebert.hdownloader.Event.DownloadMusicWebhookEvent;
 import com.hebert.hdownloader.Storage.MinioService;
 
 @Component
@@ -15,10 +20,41 @@ public class YoutubeDownloaderService {
 
     private MinioService minioService;
 
+    private final RestTemplate restTemplate = new RestTemplate();
+
+    private final String musicServerWebhookAddress;
+
     private static final Logger logger = LoggerFactory.getLogger(YoutubeDownloaderService.class);
 
-    public YoutubeDownloaderService(MinioService minioService) {
+    public YoutubeDownloaderService(MinioService minioService, @Value("${app.music.server.webhook}") String musicServerWebhookAddress) {
         this.minioService = minioService;
+        this.musicServerWebhookAddress = musicServerWebhookAddress;
+        
+    }
+
+    private void saveMusicDetailsWebhook(String musicCode) throws IOException{
+        List<String> musicData = YoutubeDataApiConsumer.getTitleAndDuration(musicCode);
+
+        String musicTitle = musicData.get(0);
+
+        Integer musicDuration =  YoutubeFormatUtil.convertDurationIntoSeconds(musicData.get(1));
+
+        String musicChannelName = musicData.get(2);
+
+        DownloadMusicWebhookEvent music = new DownloadMusicWebhookEvent();
+
+        music.setTitle(musicTitle);
+        music.setDuration(musicDuration);
+        music.setMusicId(musicCode);
+        music.setChannelName(musicChannelName);
+
+        System.out.println("Webhook music details...");
+
+        String url = musicServerWebhookAddress + "/download-event";
+
+        System.out.println(url);
+
+        restTemplate.postForObject(url, music, String.class);
     }
 
     public void downloadMusic(String youtubeLink) throws IOException, InterruptedException {
@@ -27,6 +63,38 @@ public class YoutubeDownloaderService {
 
         String musicCode = YoutubeFormatUtil.linkCodeGetter(link);
 
+        downloadMusicFile(musicCode, link);
+
+        saveThumbnail(musicCode);
+
+        saveMusicDetailsWebhook(musicCode);
+    }
+
+    private void saveThumbnail(String musicCode){
+        YoutubeDataApiConsumer.downloadThumbnail(musicCode);
+
+        String currentDirectory = System.getProperty("user.dir");
+
+        File highThumbnailFile = new File(currentDirectory + "/tmp/thumbnail/high/" + musicCode + ".jpg");
+        File mediumThumbnailFile = new File(currentDirectory + "/tmp/thumbnail/medium/" + musicCode + ".jpg");
+        File lowThumbnailFile = new File(currentDirectory + "/tmp/thumbnail/low/" + musicCode + ".jpg");
+
+        String filename = musicCode + ".jpg";
+        try{
+            minioService.uploadThumbnail(currentDirectory + "/tmp/thumbnail/high/" + filename, filename, ThumbnailQuality.HIGH);
+            minioService.uploadThumbnail(currentDirectory + "/tmp/thumbnail/medium/" + filename, filename, ThumbnailQuality.MEDIUM);
+            minioService.uploadThumbnail(currentDirectory + "/tmp/thumbnail/low/" + filename, filename, ThumbnailQuality.LOW);
+        }catch (Exception e){
+            System.out.println("Error uploading thumbnail to minio: " + e.getMessage());
+        }finally{
+            highThumbnailFile.delete();
+            mediumThumbnailFile.delete();
+            lowThumbnailFile.delete();
+        }
+        
+    }  
+
+    private void downloadMusicFile(String musicCode, String link) throws IOException, InterruptedException{
         if(minioService.fileExists("file/" + musicCode + ".mp3")){
             System.out.println("Music is already installed");
             return;
@@ -39,7 +107,7 @@ public class YoutubeDownloaderService {
         File downloadedFile = new File(currentDirectory + "/tmp/music/" + musicCode + ".mp3");
 
         if (!downloadedFile.exists()) {
-            throw new IOException("Music file not found.");
+            throw new IOException("Music file not found. (Download failed)");
         } else {
             String fileName = musicCode + ".mp3";
 

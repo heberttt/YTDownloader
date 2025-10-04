@@ -22,56 +22,6 @@ public class YoutubeFormatUtil {
     }
 
 
-    public static void downloadThumbnail(String youtubeCode){
-        String currentDirectory = System.getProperty("user.dir");
-        List<String> installationPaths = new ArrayList<>();
-        installationPaths.add(currentDirectory + "/assets/thumbnails/low/");
-        installationPaths.add(currentDirectory + "/assets/thumbnails/medium/");
-        installationPaths.add(currentDirectory + "/assets/thumbnails/high/");
-
-        int i = 0;
-        for(String installationPath : installationPaths){
-            RestTemplate restTemplate = new RestTemplate();
-
-            try{
-
-                String quality = "default";
-
-                switch(i){
-                    case 0:
-                        quality = "default";
-                        break;
-                    case 1:
-                        quality = "mqdefault";
-                        break;
-                    case 2:
-                        quality = "hqdefault";
-                        break;
-                    default:
-                        break;
-                }
-
-                System.out.println("Requesting thumbnail");
-                ResponseEntity<byte[]> response = restTemplate.getForEntity("https://i.ytimg.com/vi/" + youtubeCode + "/" + quality + ".jpg", byte[].class);
-                
-
-                if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null){
-                    try (FileOutputStream fos = new FileOutputStream(installationPath + youtubeCode + ".jpg")) {
-                        System.out.println("Writing thumbnail");
-                        fos.write(response.getBody());
-                    }
-                }
-            }catch(Exception e){
-                e.printStackTrace();
-            }
-
-            i++;
-        }
-
-        
-
-    }
-
 
     public static String linkCodeGetter(String link) {
         //https://www.youtube.com/watch?v=1f81qXxggo8

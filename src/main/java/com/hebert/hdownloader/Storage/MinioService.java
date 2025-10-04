@@ -7,6 +7,9 @@ import java.security.NoSuchAlgorithmException;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import com.google.api.services.youtube.model.Thumbnail;
+import com.hebert.hdownloader.Enum.ThumbnailQuality;
+
 import io.minio.BucketExistsArgs;
 import io.minio.MakeBucketArgs;
 import io.minio.MinioClient;
@@ -82,6 +85,34 @@ public class MinioService {
 
         System.out.println("File uploaded: " + fileName);
 
+    }
+
+    public void uploadThumbnail(String filePath, String fileName, ThumbnailQuality quality) throws MinioException, InvalidKeyException, NoSuchAlgorithmException, IllegalArgumentException, IOException{
+        try {
+            if (!minioClient.bucketExists(BucketExistsArgs.builder().bucket(bucket).build())) {
+                System.out.println("Bucket does not exist, creating bucket....");
+                minioClient.makeBucket(
+                        MakeBucketArgs
+                                .builder()
+                                .bucket(bucket)
+                                .build());
+            }
+        } catch (Exception e) {
+            throw new MinioException("Bucket creation/validation error: " + e.getMessage());
+        }
+
+        System.out.println("Uploading....");
+
+        minioClient.uploadObject(
+                UploadObjectArgs.builder()
+                        .bucket(bucket)
+                        .object("thumbnail/" + quality.toString() +  "/" + fileName)
+                        .filename(filePath)
+                        .contentType("image/jpeg")
+                        .build()
+        );
+
+        System.out.println("File uploaded: " + fileName);
     }
 
 }

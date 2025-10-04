@@ -26,6 +26,7 @@ public class MessageListener {
             System.out.println("Download completed.");
         }catch(Exception e){
             System.out.println("Install error");
+            System.out.println(e.getMessage());
         }
     }
 }
